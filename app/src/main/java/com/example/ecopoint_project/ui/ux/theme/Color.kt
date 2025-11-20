@@ -1,5 +1,4 @@
-package com.example.ecopoint_project.ui.theme
-
+package com.example.ecopoint_project.ui.ux.theme
 import androidx.compose.ui.graphics.Color
 
 // Warna Utama (Green - Eco Style)

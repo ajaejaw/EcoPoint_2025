@@ -9,7 +9,7 @@ import com.example.ecopoint_project.data.entity.TransaksiEntity
 import com.example.ecopoint_project.data.entity.UserEntity
 
 // Daftar tabel didaftarkan di sini [cite: 30, 31]
-@Database(entities = [UserEntity::class, TransaksiEntity::class], version = 1, exportSchema = false)
+@Database(entities = [UserEntity::class, TransaksiEntity::class], version = 2, exportSchema = false)
 abstract class EcoDatabase : RoomDatabase() {
 
     // Pintu akses ke DAO

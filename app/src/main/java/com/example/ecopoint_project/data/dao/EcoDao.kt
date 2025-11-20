@@ -1,6 +1,7 @@
 package com.example.ecopoint_project.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -10,31 +11,30 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EcoDao {
-    // --- BAGIAN USER (GAMIFIKASI) ---
-
-    // Ambil data user (Menggunakan Flow agar data selalu update otomatis di UI)
-    @Query("SELECT * FROM user_table WHERE id = 1")
-    fun getUser(): Flow<UserEntity?>
-
-    // Simpan user baru (hanya dijalankan sekali saat instal)
+    // --- AUTH ---
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertUser(user: UserEntity)
 
-    // Update Poin & Level (Logika Gamifikasi)
-    @Query("UPDATE user_table SET totalPoints = :points, currentLevel = :level WHERE id = 1")
-    suspend fun updateUserPoints(points: Int, level: String)
+    @Query("SELECT * FROM user_table WHERE username = :username AND password = :password")
+    fun loginUser(username: String, password: String): Flow<UserEntity?>
 
-    // --- BAGIAN TRANSAKSI (RIWAYAT) ---
+    @Query("SELECT * FROM user_table WHERE username = :username")
+    suspend fun getUserByUsername(username: String): UserEntity?
 
-    // Simpan transaksi sampah baru (Create)
+    @Query("SELECT * FROM user_table WHERE id = :userId")
+    fun getUserById(userId: Int): Flow<UserEntity>
+
+    @Query("UPDATE user_table SET totalPoints = :points, currentLevel = :level WHERE id = :userId")
+    suspend fun updateUserPoints(userId: Int, points: Int, level: String)
+
+    // --- TRANSAKSI ---
     @Insert
     suspend fun insertTransaksi(transaksi: TransaksiEntity)
 
-    // Ambil semua riwayat, urutkan dari yang terbaru (Read)
-    @Query("SELECT * FROM transaksi_sampah ORDER BY date DESC")
-    fun getAllTransaksi(): Flow<List<TransaksiEntity>>
+    @Query("SELECT * FROM transaksi_sampah WHERE userId = :userId ORDER BY date DESC")
+    fun getTransaksiByUser(userId: Int): Flow<List<TransaksiEntity>>
 
-    // Hapus semua riwayat (Opsional/Delete)
-    @Query("DELETE FROM transaksi_sampah")
-    suspend fun deleteAllTransaksi()
+    // FUNGSI BARU: HAPUS DATA
+    @Delete
+    suspend fun deleteTransaksi(transaksi: TransaksiEntity)
 }

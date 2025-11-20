@@ -7,8 +7,13 @@ import androidx.room.PrimaryKey
 data class TransaksiEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val trashType: String,
-    val weightInKg: Double,
-    val earnedPoints: Int,
-    val date: Long = System.currentTimeMillis()
+
+    // --- KOLOM BARU (PENTING UNTUK LOGIN) ---
+    val userId: Int, // Menyimpan ID User pemilik sampah ini
+    // ----------------------------------------
+
+    val trashType: String, // Jenis sampah (Plastik/Kertas)
+    val weightInKg: Double, // Berat
+    val earnedPoints: Int, // Poin yang didapat
+    val date: Long = System.currentTimeMillis() // Tanggal otomatis
 )

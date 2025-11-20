@@ -1,5 +1,4 @@
-package com.example.ecopoint_project.ui.theme
-
+package com.example.ecopoint_project.ui.ux.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily

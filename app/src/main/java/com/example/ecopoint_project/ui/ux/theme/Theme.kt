@@ -1,5 +1,4 @@
-package com.example.ecopoint_project.ui.theme
-
+package com.example.ecopoint_project.ui.ux.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable

@@ -5,9 +5,16 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "user_table")
 data class UserEntity(
-    @PrimaryKey(autoGenerate = false)
-    val id: Int = 1, // ID 1 karena kita cuma butuh single user
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
     val name: String,
+
+    // --- INI YANG HILANG TADI ---
+    val username: String,  // Kolom username (penyebab error)
+    val password: String,  // Kolom password
+    // ----------------------------
+
     val totalPoints: Int = 0,
     val currentLevel: String = "Warga Baru"
 )

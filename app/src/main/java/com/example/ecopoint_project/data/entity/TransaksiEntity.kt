@@ -1,19 +1,30 @@
 package com.example.ecopoint_project.data.entity
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "transaksi_sampah")
+@Entity(
+    tableName = "transaksi_sampah",
+    // Menambahkan Foreign Key ke UserEntity
+    // Artinya: Jika User dihapus, semua data sampah miliknya juga ikut terhapus (CASCADE)
+    foreignKeys = [
+        ForeignKey(
+            entity = UserEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["userId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
+)
 data class TransaksiEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    // --- KOLOM BARU (PENTING UNTUK LOGIN) ---
-    val userId: Int, // Menyimpan ID User pemilik sampah ini
-    // ----------------------------------------
+    val userId: Int,
 
-    val trashType: String, // Jenis sampah (Plastik/Kertas)
-    val weightInKg: Double, // Berat
-    val earnedPoints: Int, // Poin yang didapat
-    val date: Long = System.currentTimeMillis() // Tanggal otomatis
+    val trashType: String,
+    val weightInKg: Double,
+    val earnedPoints: Int,
+    val date: Long = System.currentTimeMillis()
 )

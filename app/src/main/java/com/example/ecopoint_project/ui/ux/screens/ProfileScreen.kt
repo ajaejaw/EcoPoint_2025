@@ -2,6 +2,8 @@ package com.example.ecopoint_project.ui.ux.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState // <--- Tambahkan ini untuk Scroll
+import androidx.compose.foundation.verticalScroll      // <--- Tambahkan ini untuk Scroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,9 +28,10 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit
 ) {
-    // 1. AMBIL DATA REAL-TIME DARI DATABASE
     val user by viewModel.currentUser.collectAsState()
     val historyList by viewModel.historyList.collectAsState()
+    // 1. AMBIL DATA GRAFIK
+    val weeklyStats by viewModel.weeklyStats.collectAsState()
 
     Scaffold(
         topBar = {
@@ -45,11 +48,12 @@ fun ProfileScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(24.dp)
-                .fillMaxWidth(),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()) // Agar bisa di-scroll jika layar kecil
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- FOTO PROFIL (ICON) ---
+            // --- FOTO PROFIL ---
             Box(
                 modifier = Modifier
                     .size(120.dp)
@@ -66,7 +70,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- NAMA & USERNAME ASLI ---
             Text(
                 text = user?.name ?: "Memuat...",
                 fontSize = 24.sp,
@@ -80,7 +83,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- KARTU STATISTIK (DATA ASLI) ---
+            // --- KARTU STATISTIK ---
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -90,45 +93,30 @@ fun ProfileScreen(
                     modifier = Modifier.padding(24.dp).fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // KOLOM 1: JUMLAH TRANSAKSI
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${historyList.size}", // Hitung jumlah list
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+                        Text("${historyList.size}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Text("Transaksi", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
-
-                    // KOLOM 2: TOTAL POIN (Mulai dari 0)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${user?.totalPoints ?: 0}", // Ambil poin dari DB
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+                        Text("${user?.totalPoints ?: 0}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Text("Total Poin", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
-
-                    // KOLOM 3: STATUS LEVEL
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Logika tampilan singkat: Jika poin > 1000 jadi "Pro", jika tidak "New"
                         val status = if ((user?.totalPoints ?: 0) >= 1000) "Pro" else "New"
-
-                        Text(
-                            text = status,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+                        Text(status, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Text("Status", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- 2. TAMPILKAN GRAFIK MINGGUAN ---
+            if (weeklyStats.isNotEmpty()) {
+                WeeklyBarChart(weeklyData = weeklyStats)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // --- TOMBOL LOGOUT ---
             Button(
@@ -136,7 +124,7 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE)), // Merah Muda Lembut
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEBEE)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.ExitToApp, null, tint = Color.Red)

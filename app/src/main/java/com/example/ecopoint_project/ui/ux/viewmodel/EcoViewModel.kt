@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class EcoViewModel(private val repository: EcoRepository) : ViewModel() {
 
@@ -20,6 +24,10 @@ class EcoViewModel(private val repository: EcoRepository) : ViewModel() {
 
     private val _historyList = MutableStateFlow<List<TransaksiEntity>>(emptyList())
     val historyList: StateFlow<List<TransaksiEntity>> = _historyList
+
+    // --- STATISTIK MINGGUAN (BARU) ---
+    private val _weeklyStats = MutableStateFlow<List<Pair<String, Double>>>(emptyList())
+    val weeklyStats: StateFlow<List<Pair<String, Double>>> = _weeklyStats
 
     // --- LOGIN ---
     fun login(username: String, pass: String) {
@@ -56,7 +64,6 @@ class EcoViewModel(private val repository: EcoRepository) : ViewModel() {
         }
     }
 
-    // --- LOGOUT ---
     fun logout() {
         _currentUser.value = null
         _historyList.value = emptyList()
@@ -69,51 +76,60 @@ class EcoViewModel(private val repository: EcoRepository) : ViewModel() {
         viewModelScope.launch {
             repository.getHistoryByUser(userId).collect { daftarSampah ->
                 _historyList.value = daftarSampah
+                calculateWeeklyStats(daftarSampah) // Hitung grafik saat data dimuat
             }
         }
     }
 
-    // --- SETOR SAMPAH ---
+    // --- HITUNG DATA GRAFIK (BARU) ---
+    private fun calculateWeeklyStats(list: List<TransaksiEntity>) {
+        val statsMap = mutableMapOf<String, Double>()
+        val dateFormat = SimpleDateFormat("EEE", Locale("id", "ID")) // Format Hari (Sen, Sel, dll)
+
+        // 1. Buat wadah kosong untuk 7 hari terakhir (agar grafik tidak bolong)
+        for (i in 6 downTo 0) {
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, -i)
+            val dayName = dateFormat.format(cal.time)
+            statsMap[dayName] = 0.0
+        }
+
+        // 2. Isi dengan data transaksi yang ada (filter 7 hari terakhir)
+        val oneWeekAgo = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -7) }.timeInMillis
+
+        list.filter { it.date >= oneWeekAgo }.forEach { item ->
+            val dayName = dateFormat.format(Date(item.date))
+            if (statsMap.containsKey(dayName)) {
+                statsMap[dayName] = statsMap[dayName]!! + item.weightInKg
+            }
+        }
+
+        _weeklyStats.value = statsMap.toList()
+    }
+
     fun setorSampah(jenis: String, berat: Double) {
         val user = _currentUser.value ?: return
-
         viewModelScope.launch {
             val poinDidapat = (berat * 100).toInt()
-
             val transaksi = TransaksiEntity(
                 userId = user.id, trashType = jenis, weightInKg = berat, earnedPoints = poinDidapat
             )
             repository.insertTransaksi(transaksi)
 
             val totalPoinBaru = user.totalPoints + poinDidapat
-            val levelBaru = hitungLevel(totalPoinBaru)
-
-            repository.updateUserPoints(user.id, totalPoinBaru, levelBaru)
+            repository.updateUserPoints(user.id, totalPoinBaru, hitungLevel(totalPoinBaru))
             _currentUser.value = repository.getUserById(user.id).first()
         }
     }
 
-    // --- HAPUS SAMPAH (BARU) ---
     fun deleteSampah(item: TransaksiEntity) {
         val user = _currentUser.value ?: return
-
         viewModelScope.launch {
-            // 1. Hapus dari DB
             repository.deleteTransaksi(item)
-
-            // 2. Kurangi Poin (Jangan sampai minus)
-            val poinDikurangi = item.earnedPoints
-            val totalPoinBaru = (user.totalPoints - poinDikurangi).coerceAtLeast(0)
-
-            // 3. Cek Level (Siapa tahu turun level)
-            val levelBaru = hitungLevel(totalPoinBaru)
-
-            // 4. Update User
-            repository.updateUserPoints(user.id, totalPoinBaru, levelBaru)
-
-            // 5. Refresh UI
+            val totalPoinBaru = (user.totalPoints - item.earnedPoints).coerceAtLeast(0)
+            repository.updateUserPoints(user.id, totalPoinBaru, hitungLevel(totalPoinBaru))
             _currentUser.value = repository.getUserById(user.id).first()
-            loadUserData(user.id) // Refresh list riwayat
+            // Data grafik akan otomatis terupdate karena dipanggil di loadUserData -> collect
         }
     }
 

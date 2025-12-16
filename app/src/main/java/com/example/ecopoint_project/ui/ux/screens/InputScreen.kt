@@ -56,46 +56,69 @@ fun InputScreen(
     val context = LocalContext.current
 
     // --- SETUP AI (ML Kit) ---
-    val labeler = remember { ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS) }
+    // Diperbarui: Menggunakan Threshold 0.5 (50%) agar AI lebih selektif
+    val labeler = remember {
+        val options = ImageLabelerOptions.Builder()
+            .setConfidenceThreshold(0.5f)
+            .build()
+        ImageLabeling.getClient(options)
+    }
 
-    // --- FUNGSI LOGIKA AI (CERDAS) ---
+    // --- FUNGSI LOGIKA AI (CERDAS - DENGAN FILTER) ---
     fun processImageWithAI(image: InputImage) {
         labeler.process(image)
             .addOnSuccessListener { labels ->
                 var detectedCategory: String? = null
 
-                // 1. Kumpulkan semua label yang dilihat AI (lowercase)
-                val labelTexts = labels.map { it.text.lowercase() }
+                // --- 1. FILTER BLACKLIST (Mencegah salah deteksi tangan/ruangan) ---
+                val noiseWords = listOf(
+                    // Bagian Tubuh
+                    "hand", "finger", "skin", "nail", "thumb", "person", "human", "arm", "wrist", "leg", "toe", "mouth" , "dude" ,
+                    // Lingkungan/Ruangan
+                    "room", "indoor", "floor", "wall", "ceiling", "furniture", "table", "chair", "door", "window", "fun" , "jacket" , "jeans" , "Dog" , "screenshot" ,
+                    // Abstrak/Umum
+                    "design", "pattern", "technology", "electronic", "device", "gadget", "photography", "snapshot", "selfie"
+                )
 
-                // String untuk debugging (Tampilkan apa yang dilihat AI ke user)
-                val debugLabels = labels.sortedByDescending { it.confidence }
-                    .take(3)
+                // Ambil label yang VALID saja (tidak mengandung kata di blacklist)
+                val validLabels = labels
+                    .filter { label ->
+                        val text = label.text.lowercase()
+                        noiseWords.none { noise -> text.contains(noise) }
+                    }
+                    .sortedByDescending { it.confidence }
+
+                // Gunakan labelTexts yang sudah BERSIH untuk logika deteksi
+                val labelTexts = validLabels.map { it.text.lowercase() }
+
+                // String untuk debugging (Hanya menampilkan label valid ke user)
+                val debugLabels = validLabels.take(3)
                     .joinToString { "${it.text} (${(it.confidence * 100).toInt()}%)" }
 
-                // --- TAHAP 1: DETEKSI BAHAN (MATERIAL) - PRIORITAS TINGGI ---
+                // --- TAHAP 2: DETEKSI BAHAN (MATERIAL) - PRIORITAS TINGGI ---
                 if (detectedCategory == null) {
-                    if (labelTexts.any { it in listOf("glass", "ceramic", "porcelain", "wine bottle", "beer bottle", "jar") }) {
+                    if (labelTexts.any { it in listOf("glass", "ceramic", "porcelain", "wine bottle", "beer bottle", "jar", "vase") }) {
                         detectedCategory = "Kaca"
-                    } else if (labelTexts.any { it in listOf("cardboard", "paper", "newspaper", "magazine", "envelope", "tissue", "carton") }) {
+                    } else if (labelTexts.any { it in listOf("cardboard", "paper", "newspaper", "magazine", "envelope", "tissue", "carton", "box", "book", "poster") }) {
                         detectedCategory = "Kertas"
-                    } else if (labelTexts.any { it in listOf("metal", "aluminum", "tin", "steel", "iron", "copper", "foil", "can", "beverage can") }) {
+                    } else if (labelTexts.any { it in listOf("metal", "aluminum", "tin", "steel", "iron", "copper", "foil", "can", "beverage can", "soda") }) {
                         detectedCategory = "Logam"
-                    } else if (labelTexts.any { it in listOf("plastic", "polyethylene", "nylon", "vinyl", "straw", "wrapper", "bag") }) {
+                    } else if (labelTexts.any { it in listOf("plastic", "polyethylene", "nylon", "vinyl", "straw", "wrapper", "bag", "bottle", "water bottle", "cup", "container") }) {
                         detectedCategory = "Plastik"
-                    } else if (labelTexts.any { it in listOf("vegetable", "fruit", "food", "plant", "leaf", "flower", "meat", "bread") }) {
+                    } else if (labelTexts.any { it in listOf("vegetable", "fruit", "food", "plant", "leaf", "flower", "meat", "bread", "banana", "apple", "orange") }) {
                         detectedCategory = "Organik"
                     }
                 }
 
-                // --- TAHAP 2: DETEKSI BENTUK (SHAPE) - JIKA BAHAN TIDAK KETEMU ---
+                // --- TAHAP 3: DETEKSI BENTUK (SHAPE) - JIKA BAHAN TIDAK KETEMU ---
                 if (detectedCategory == null) {
                     if (labelTexts.any { it in listOf("soda", "drink") }) {
                         detectedCategory = "Logam" // Asumsi kaleng minuman
-                    } else if (labelTexts.any { it in listOf("box", "book", "notebook", "packaging") }) {
+                    } else if (labelTexts.any { it in listOf("notebook", "packaging") }) {
                         detectedCategory = "Kertas"
-                    } else if (labelTexts.any { it in listOf("bottle", "water bottle", "container", "cup", "jug", "tub") }) {
-                        detectedCategory = "Plastik" // Botol air/wadah defaultnya plastik
-                    } else if (labelTexts.any { it in listOf("vase", "tableware") }) {
+                    } else if (labelTexts.any { it in listOf("jug", "tub", "dispenser") }) {
+                        detectedCategory = "Plastik"
+                    } else if (labelTexts.any { it in listOf("tableware") }) {
                         detectedCategory = "Kaca"
                     }
                 }
@@ -104,11 +127,16 @@ fun InputScreen(
                 if (detectedCategory != null) {
                     selectedJenisSampah = detectedCategory
                     scope.launch {
-                        snackbarHostState.showSnackbar("AI: Terdeteksi $detectedCategory (Info: $debugLabels)")
+                        snackbarHostState.showSnackbar("AI: Terdeteksi $detectedCategory (Sumber: $debugLabels)")
                     }
                 } else {
+                    // Jika setelah difilter tidak ada yang cocok, beri saran ke user
                     scope.launch {
-                        snackbarHostState.showSnackbar("AI Bingung. Terlihat: $debugLabels")
+                        if (validLabels.isEmpty()) {
+                            snackbarHostState.showSnackbar("Objek tidak jelas. Coba dekatkan kamera ke sampah.")
+                        } else {
+                            snackbarHostState.showSnackbar("Jenis tidak dikenali. Terlihat: $debugLabels")
+                        }
                     }
                 }
             }

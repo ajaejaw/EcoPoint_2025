@@ -132,6 +132,20 @@ class EcoViewModel(private val repository: EcoRepository) : ViewModel() {
             // Data grafik akan otomatis terupdate karena dipanggil di loadUserData -> collect
         }
     }
+    
+    fun updateSampah(updatedItem: TransaksiEntity) {
+        val user = _currentUser.value ?: return
+        viewModelScope.launch {
+            val originalItem = _historyList.value.find { it.id == updatedItem.id } ?: return@launch
+            val newPoints = (updatedItem.weightInKg * 100).toInt()
+            val pointDifference = newPoints - originalItem.earnedPoints
+            val finalUpdatedItem = updatedItem.copy(earnedPoints = newPoints)
+            repository.updateTransaksi(finalUpdatedItem)
+            val newTotalUserPoints = (user.totalPoints + pointDifference).coerceAtLeast(0)
+            repository.updateUserPoints(user.id, newTotalUserPoints, hitungLevel(newTotalUserPoints))
+            _currentUser.value = repository.getUserById(user.id).first()
+        }
+    }
 
     private fun hitungLevel(poin: Int): String {
         return when {

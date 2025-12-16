@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update // <-- IMPORT BARU
 import com.example.ecopoint_project.data.entity.TransaksiEntity
 import com.example.ecopoint_project.data.entity.UserEntity
 import kotlinx.coroutines.flow.Flow
@@ -37,4 +38,8 @@ interface EcoDao {
     // FUNGSI BARU: HAPUS DATA
     @Delete
     suspend fun deleteTransaksi(transaksi: TransaksiEntity)
+
+    // FUNGSI BARU: UPDATE DATA
+    @Update
+    suspend fun updateTransaksi(transaksi: TransaksiEntity)
 }

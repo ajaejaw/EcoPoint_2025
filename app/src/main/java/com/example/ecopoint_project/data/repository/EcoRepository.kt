@@ -41,4 +41,9 @@ class EcoRepository(private val ecoDao: EcoDao) {
     suspend fun deleteTransaksi(transaksi: TransaksiEntity) {
         ecoDao.deleteTransaksi(transaksi)
     }
+
+    // FUNGSI BARU: PANGGIL DAO UPDATE
+    suspend fun updateTransaksi(transaksi: TransaksiEntity) {
+        ecoDao.updateTransaksi(transaksi)
+    }
 }

@@ -15,6 +15,22 @@ import com.example.ecopoint_project.ui.ux.viewmodel.ViewModelFactory
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        /*
+    ===========================================================================
+    TUGAS BESAR PAB 2025/2026
+    KELOMPOK: GIM
+
+    ANGGOTA KELOMPOK:
+    1.MUHAMMAD RADJA FIKRI NAFIS (23523161)
+    2.MUHAMMAD FAIZ SYAHPUTRA (23523145)
+    3.ABDUL QADIR ABDURRAHMAN MAHRUS (23523178)
+    4.NAUFAL MUSYAFFA ARIQ WIBOWO (23523176)
+
+    CREDENTIALS LOGIN (Akun Demo):
+    Username : radja
+    Password : 123
+    ===========================================================================
+    */
 
         // 1. Inisialisasi Database & Repository
         // Kita buat di sini agar bisa dishare ke semua layar lewat ViewModel
